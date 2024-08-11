@@ -59,7 +59,7 @@ jobs:
 
       - name: Check for Maven
         run: |
-          if ! command -v mvn &> /dev/null 
+          if ! command -v mvn &> /dev/null
           then
               echo "Maven not found, installing..."
               sudo apt-get update
@@ -67,6 +67,14 @@ jobs:
           else
               echo "Maven is already installed."
           fi
+
+      - name: Validate Installation
+        run: |
+          echo "Validating installation..."
+          command -v git 
+          command -v docker
+          command -v docker-compose
+          command -v mvn
 
   build:
     runs-on: self-hosted
