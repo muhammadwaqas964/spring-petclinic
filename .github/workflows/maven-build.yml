@@ -1,77 +1,66 @@
 # This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
 # For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
 
-name: Java CI with Maven
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-   setup: 
+  setup:
     runs-on: self-hosted
     steps:
-      - name: Check for Git
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
         run: |
-          if ! command -v git &> /dev/null
-          then
-              echo "Git not found, installing..." 
-              sudo apt-get update
-              sudo apt-get install -y git
+          sudo apt-get update
+          
+          # Check for Git
+          if ! command -v git &> /dev/null; then
+            echo "Git is not installed. Installing..."
+            sudo apt-get install -y git
           else
-              echo "Git is already installed."
+            echo "Git is already installed."
           fi
 
-      - name: Check for Docker
-        run: |
-          if ! command -v docker &> /dev/null
-          then
-              echo "Docker not found, installing..."
-              sudo apt-get update
-              sudo apt-get install -y \
-                apt-transport-https \
-                ca-certificates \
-                curl \
-                gnupg-agent \
-                software-properties-common && \
-                curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - && \
-                sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && \
-                sudo apt-get update && \
-                sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+          # Check for Docker
+          if ! command -v docker &> /dev/null; then
+            echo "Docker is not installed. Installing..."
+            sudo apt-get install -y docker.io
           else
-              echo "Docker is already installed."
+            echo "Docker is already installed."
           fi
 
-      - name: Check for Docker Compose
-        run: |
-          if ! command -v docker-compose &> /dev/null
-          then
-              echo "Docker Compose not found, installing..."
-              sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-              sudo chmod +x /usr/local/bin/docker-compose
+          # Check for Docker Compose
+          if ! command -v docker-compose &> /dev/null; then
+            echo "Docker Compose is not installed. Installing..."
+            sudo apt-get install -y docker-compose
           else
-              echo "Docker Compose is already installed."
+            echo "Docker Compose is already installed."
           fi
 
-      - name: Check for Maven
-        run: |
-          if ! command -v mvn &> /dev/null
-          then
-              echo "Maven not found, installing..."
-              sudo apt-get update
-              sudo apt-get install -y maven
+          # Check for Maven
+          if ! command -v mvn &> /dev/null; then
+            echo "Maven is not installed. Installing..."
+            sudo apt-get install -y maven
           else
-              echo "Maven is already installed."
+            echo "Maven is already installed."
           fi
 
   build:
     runs-on: self-hosted
     needs: setup
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Build with Maven
         run: ./mvnw -B package
 
@@ -79,24 +68,32 @@ jobs:
     runs-on: self-hosted
     needs: build
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Deploy application
         env:
           DEPLOY_SERVER: '103.151.111.202'
           DEPLOY_PORT: '8080'
-          DEPLOY_USER: 'deploy'
+          DEPLOY_USER: 'deploy'  # Ensure this user has deployment permissions
         run: |
-          echo "Deploying to $DEPLOY_SERVER on port $DEPLOY_PORT"
-          scp -r target/*.jar $DEPLOY_USER@$DEPLOY_SERVER:/path/to/deployment/
-          ssh $DEPLOY_USER@$DEPLOY_SERVER "pkill -f 'java -jar target/*.jar' || true"
-          ssh $DEPLOY_USER@$DEPLOY_SERVER "nohup java -jar /path/to/deployment/*.jar > /dev/null 2>&1 &"
+          echo "Deploying application to $DEPLOY_SERVER"
+          scp -i /path/to/your/private/key target/*.jar $DEPLOY_USER@$DEPLOY_SERVER:/path/to/deploy/
+          ssh -i /path/to/your/private/key $DEPLOY_USER@$DEPLOY_SERVER "java -jar /path/to/deploy/*.jar"
 
   test:
     runs-on: self-hosted
     needs: deploy
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-      - name: Test application
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check application URL
         run: |
+          echo "Checking application URL"
           curl -s http://103.151.111.202:8080 || exit 1
+
+      - name: Run tests
+        run: ./mvnw test
+
 
