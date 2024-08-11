@@ -10,20 +10,55 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        java: [ '17' ]
-
+  setup:
+    runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up JDK ${{matrix.java}}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{matrix.java}}
-          distribution: 'adopt'
-          cache: maven
-      - name: Build with Maven Wrapper
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Install Git
+        run: sudo apt-get install -y git
+      - name: Install Docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+      - name: Install Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+      - name: Install Maven
+        run: sudo apt-get install -y maven
+
+  build:
+    runs-on: self-hosted
+    needs: setup
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Build with Maven
         run: ./mvnw -B package
+
+  deploy:
+    runs-on: self-hosted
+    needs: build
+    steps:
+      - name: Deploy application
+        env:
+          DEPLOY_SERVER: '103.151.111.202'
+          DEPLOY_PORT: '8080'
+          DEPLOY_USER: 'deploy'
+        run: |
+          echo "Deploying to $DEPLOY_SERVER on port $DEPLOY_PORT"
+          scp -r target/*.jar $DEPLOY_USER@$DEPLOY_SERVER:/path/to/deployment/
+          ssh $DEPLOY_USER@$DEPLOY_SERVER "pkill -f 'java -jar target/*.jar' || true"
+          ssh $DEPLOY_USER@$DEPLOY_SERVER "nohup java -jar /path/to/deployment/*.jar > /dev/null 2>&1 &"
+
+  test:
+    runs-on: self-hosted
+    needs: deploy
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Test application
+        run: |
+          curl -s http://103.151.111.202:8080 || exit 1
+
