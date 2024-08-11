@@ -1,7 +1,7 @@
 # This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
 # For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
 
-name: CI/CD Pipeline
+name: CI/CD Pipelines
 
 on:
   push:
@@ -15,51 +15,57 @@ jobs:
   setup:
     runs-on: self-hosted
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Install dependencies
+      - name: Check for Git
         run: |
-          sudo apt-get update
-
-          # Check for Git
-          if ! command -v git &> /dev/null; then
-            echo "Git is not installed. Installing..."
-            sudo apt-get install -y git
+          if ! command -v git &> /dev/null
+          then
+              echo "Git not found, installing..."
+              sudo apt-get update
+              sudo apt-get install -y git
           else
-            echo "Git is already installed."
+              echo "Git is already installed."
           fi
 
-          # Check for Docker
-          if ! command -v docker &> /dev/null; then
-            echo "Docker is not installed. Installing..."
-            sudo apt-get install -y docker.io
+      - name: Check for Docker
+        run: |
+          if ! command -v docker &> /dev/null
+          then
+              echo "Docker not found, installing..."
+              sudo apt-get update
+              sudo apt-get install -y \
+                apt-transport-https \
+                ca-certificates \
+                curl \
+                gnupg-agent \
+                software-properties-common && \
+                curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - && \
+                sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && \
+                sudo apt-get update && \
+                sudo apt-get install -y docker-ce docker-ce-cli containerd.io
           else
-            echo "Docker is already installed."
+              echo "Docker is already installed."
           fi
 
-          # Check for Docker Compose
-          if ! command -v docker-compose &> /dev/null; then
-            echo "Docker Compose is not installed. Installing..."
-            sudo apt-get install -y docker-compose
+      - name: Check for Docker Compose
+        run: |
+          if ! command -v docker-compose &> /dev/null
+          then
+              echo "Docker Compose not found, installing..."
+              sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
           else
-            echo "Docker Compose is already installed."
+              echo "Docker Compose is already installed."
           fi
 
-          # Check for Maven
-          if ! command -v mvn &> /dev/null; then
-            echo "Maven is not installed. Installing..."
-            sudo apt-get install -y maven
+      - name: Check for Maven
+        run: |
+          if ! command -v mvn &> /dev/null 
+          then
+              echo "Maven not found, installing..."
+              sudo apt-get update
+              sudo apt-get install -y maven
           else
-            echo "Maven is already installed."
+              echo "Maven is already installed."
           fi
 
   build:
