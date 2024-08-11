@@ -18,10 +18,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
       - name: Install dependencies
         run: |
           sudo apt-get update
-          
+
           # Check for Git
           if ! command -v git &> /dev/null; then
             echo "Git is not installed. Installing..."
@@ -75,7 +83,7 @@ jobs:
         env:
           DEPLOY_SERVER: '103.151.111.202'
           DEPLOY_PORT: '8080'
-          DEPLOY_USER: 'deploy'  # Ensure this user has deployment permissions
+          DEPLOY_USER: 'deploy'
         run: |
           echo "Deploying application to $DEPLOY_SERVER"
           scp -i /path/to/your/private/key target/*.jar $DEPLOY_USER@$DEPLOY_SERVER:/path/to/deploy/
@@ -95,5 +103,6 @@ jobs:
 
       - name: Run tests
         run: ./mvnw test
+
 
 
