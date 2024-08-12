@@ -79,9 +79,19 @@ jobs:
       - name: Build with Maven
         run: ./mvnw -B package
 
-  deploy:
+  test:
     runs-on: self-hosted
     needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run tests
+        run: ./mvnw test
+
+  deploy:
+    runs-on: self-hosted
+    needs: test
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -113,7 +123,7 @@ jobs:
         run: |
           echo "Deploying application to $DEPLOY_SERVER"
           scp -i ~/.ssh/id_rsa /home/waqas/GITHUB/spring-petclinic/target/spring-petclinic-3.3.0-SNAPSHOT.jar $DEPLOY_USER@$DEPLOY_SERVER:/home/waqas/spring-petclinic/
-          ssh -i ~/.ssh/id_rsa $DEPLOY_USER@$DEPLOY_SERVER "java -jar /home/waqas/spring-petclinic/spring-petclinic-3.3.0-SNAPSHOT.jar &"
+          ssh -i ~/.ssh/id_rsa $DEPLOY_USER@$DEPLOY_SERVER "nohup java -jar /home/waqas/spring-petclinic/spring-petclinic-3.3.0-SNAPSHOT.jar > /home/waqas/spring-petclinic/app.log 2>&1 &"
           rm -f ~/.ssh/id_rsa
 
       - name: Wait for application to start
@@ -122,24 +132,11 @@ jobs:
           for i in {1..30}; do
             if curl -s http://103.151.111.202:8080 > /dev/null; then
               echo "Application is up!"
-              break
+              exit 0
             else
               echo "Application is not up yet, retrying in 10 seconds..."
               sleep 10
             fi
           done
-
-  test:
-    runs-on: self-hosted
-    needs: deploy
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Check application URL
-        run: |
-          echo "Checking application URL"
-          curl -s http://103.151.111.202:8080 || exit 1
-
-      - name: Run tests
-        run: ./mvnw test
+          echo "Application failed to start in time, exiting."
+          exit 1
