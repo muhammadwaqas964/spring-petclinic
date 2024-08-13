@@ -21,7 +21,6 @@ jobs:
           else
               echo "Git is already installed."
           fi
-
       - name: Check for Docker
         run: |
           if ! command -v docker &> /dev/null; then
@@ -41,7 +40,6 @@ jobs:
           else
               echo "Docker is already installed."
           fi
-
       - name: Check for Docker Compose
         run: |
           if ! command -v docker-compose &> /dev/null; then
@@ -51,7 +49,6 @@ jobs:
           else
               echo "Docker Compose is already installed."
           fi
-
       - name: Check for Maven
         run: |
           if ! command -v mvn &> /dev/null; then
@@ -61,7 +58,6 @@ jobs:
           else
               echo "Maven is already installed."
           fi
-
       - name: Validate Installation
         run: |
           echo "Validating installation..."
@@ -111,7 +107,7 @@ jobs:
           echo "Setting up SSH..."
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519    
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts || true
 
@@ -124,14 +120,14 @@ jobs:
         run: |
           echo "Deploying application to $DEPLOY_SERVER"
           scp -i ~/.ssh/id_ed25519 /home/waqas/GITHUB/spring-petclinic/target/spring-petclinic-3.3.0-SNAPSHOT.jar $DEPLOY_USER@$DEPLOY_SERVER:/home/waqas/spring-petclinic/
-          ssh -i ~/.ssh/id_ed25519 $DEPLOY_USER@$DEPLOY_SERVER "nohup java -jar /home/waqas/spring-petclinic/spring-petclinic-3.3.0-SNAPSHOT.jar > /dev/null 2>&1 &" 
+          ssh -i ~/.ssh/id_ed25519 $DEPLOY_USER@$DEPLOY_SERVER "nohup java -jar /home/waqas/spring-petclinic/spring-petclinic-3.3.0-SNAPSHOT.jar > /dev/null 2>&1 &"
           rm -f ~/.ssh/id_ed25519
 
       - name: Wait for application to start
         run: |
           echo "Waiting for application to start..."
           for i in {1..30}; do
-            if curl -s http://103.151.111.202:8080 > /dev/null; then
+            if curl -s http://$DEPLOY_SERVER:$DEPLOY_PORT > /dev/null; then
               echo "Application is up!"
               break
             else
