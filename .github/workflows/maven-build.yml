@@ -111,8 +111,8 @@ jobs:
           echo "Setting up SSH..."
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/test_id_ed25519    
-          chmod 600 ~/.ssh/test_id_ed25519
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519    
+          chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts || true
 
       - name: Deploy application
@@ -123,9 +123,9 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           echo "Deploying application to $DEPLOY_SERVER"
-          scp -i ~/.ssh/test_id_ed25519 /home/waqas/GITHUB/spring-petclinic/target/spring-petclinic-3.3.0-SNAPSHOT.jar $DEPLOY_USER@$DEPLOY_SERVER:/home/waqas/spring-petclinic/
-          ssh -i ~/.ssh/test_id_ed25519 $DEPLOY_USER@$DEPLOY_SERVER "nohup java -jar /home/waqas/spring-petclinic/spring-petclinic-3.3.0-SNAPSHOT.jar > /dev/null 2>&1 &" 
-          rm -f ~/.ssh/test_id_ed25519
+          scp -i ~/.ssh/id_ed25519 /home/waqas/GITHUB/spring-petclinic/target/spring-petclinic-3.3.0-SNAPSHOT.jar $DEPLOY_USER@$DEPLOY_SERVER:/home/waqas/spring-petclinic/
+          ssh -i ~/.ssh/id_ed25519 $DEPLOY_USER@$DEPLOY_SERVER "nohup java -jar /home/waqas/spring-petclinic/spring-petclinic-3.3.0-SNAPSHOT.jar > /dev/null 2>&1 &" 
+          rm -f ~/.ssh/id_ed25519
 
       - name: Wait for application to start
         run: |
