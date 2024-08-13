@@ -14,58 +14,59 @@ jobs:
     steps:
       - name: Check for Git
         run: |
-          if ! command -v git &> /dev/null
-          then
+          if ! command -v git &> /dev/null; then
               echo "Git not found, installing..."
               sudo apt-get update
               sudo apt-get install -y git
           else
               echo "Git is already installed."
           fi
+
       - name: Check for Docker
         run: |
-          if ! command -v docker &> /dev/null
-          then
+          if ! command -v docker &> /dev/null; then
               echo "Docker not found, installing..."
               sudo apt-get update
               sudo apt-get install -y \
                 apt-transport-https \
                 ca-certificates \
                 curl \
-                gnupg-agent \ 
-                software-properties-common && \
-                curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - && \
-                sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && \
-                sudo apt-get update && \
-                sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+                gnupg-agent \
+                software-properties-common
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+              sudo add-apt-repository \
+                "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+              sudo apt-get update
+              sudo apt-get install -y docker-ce docker-ce-cli containerd.io
           else
               echo "Docker is already installed."
           fi
+
       - name: Check for Docker Compose
         run: |
-          if ! command -v docker-compose &> /dev/null
-          then
+          if ! command -v docker-compose &> /dev/null; then
               echo "Docker Compose not found, installing..."
               sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
               sudo chmod +x /usr/local/bin/docker-compose
           else
               echo "Docker Compose is already installed."
           fi
+
       - name: Check for Maven
         run: |
-          if ! command -v mvn &> /dev/null
-          then
+          if ! command -v mvn &> /dev/null; then
               echo "Maven not found, installing..."
               sudo apt-get update
               sudo apt-get install -y maven
           else
               echo "Maven is already installed."
           fi
+
       - name: Validate Installation
         run: |
           echo "Validating installation..."
           command -v git
-          command -v docker 
+          command -v docker
           command -v docker-compose
           command -v mvn
 
@@ -99,7 +100,7 @@ jobs:
       - name: Verify JAR file
         run: |
           echo "Verifying JAR file presence..."
-          ls -al /home/waqas/GITHUB/spring-petclinic/target/ 
+          ls -al /home/waqas/GITHUB/spring-petclinic/target/
           if [ -z "$(find /home/waqas/GITHUB/spring-petclinic/target/ -name 'spring-petclinic-3.3.0-SNAPSHOT.jar')" ]; then
             echo "JAR file not found in target directory!"
             exit 1
@@ -107,24 +108,24 @@ jobs:
 
       - name: Setup SSH
         run: |
-          echo "Setting up SSH..." 
+          echo "Setting up SSH..."
           mkdir -p ~/.ssh
-          chmod 700 ~/.ssh       
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519 
-          chmod 600 ~/.ssh/id_ed25519       
-          ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts || true     
+          chmod 700 ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts || true
 
       - name: Deploy application
         env:
           DEPLOY_SERVER: '103.151.111.202'
           DEPLOY_PORT: '8080'
-          DEPLOY_USER: 'waqas' 
+          DEPLOY_USER: 'waqas'
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           echo "Deploying application to $DEPLOY_SERVER"
-          scp -i ~/.ssh/id_ed25519 /home/waqas/GITHUB/spring-petclinic/target/spring-petclinic-3.3.0-SNAPSHOT.jar $DEPLOY_USER@$DEPLOY_SERVER:/home/waqas/spring-petclinic/     
-          ssh -i ~/.ssh/id_ed25519 $DEPLOY_USER@$DEPLOY_SERVER "nohup java -jar /home/waqas/spring-petclinic/spring-petclinic-3.3.0-SNAPSHOT.jar > /dev/null 2>&1 &"    
-          rm -f ~/.ssh/id_ed25519    
+          scp -i ~/.ssh/id_ed25519 /home/waqas/GITHUB/spring-petclinic/target/spring-petclinic-3.3.0-SNAPSHOT.jar $DEPLOY_USER@$DEPLOY_SERVER:/home/waqas/spring-petclinic/
+          ssh -i ~/.ssh/id_ed25519 $DEPLOY_USER@$DEPLOY_SERVER "nohup java -jar /home/waqas/spring-petclinic/spring-petclinic-3.3.0-SNAPSHOT.jar > /dev/null 2>&1 &"
+          rm -f ~/.ssh/id_ed25519
 
       - name: Wait for application to start
         run: |
